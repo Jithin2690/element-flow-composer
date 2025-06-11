@@ -90,83 +90,28 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
   };
 
   const handleMoveElement = useCallback((dragIndex: number, hoverIndex: number) => {
+    console.log('Moving element from', dragIndex, 'to', hoverIndex);
     onMoveElement(section.id, dragIndex, hoverIndex);
   }, [section.id, onMoveElement]);
 
-  // Calculate available space at a specific position
+  // Simplified space calculation
   const getAvailableSpaceAt = useCallback((targetIndex: number, excludeIndex?: number): number => {
-    // Create a copy of elements without the excluded element if specified
-    const elementsToCheck = section.elements.filter((_, idx) => idx !== excludeIndex);
-    
-    // Find elements that would be on the same row as the target position
-    let currentWidth = 0;
-    let elementsBeforeTarget = 0;
-    
-    for (let i = 0; i < elementsToCheck.length && elementsBeforeTarget < targetIndex; i++) {
-      const element = elementsToCheck[i];
-      if (currentWidth + element.width <= 100) {
-        currentWidth += element.width;
-        elementsBeforeTarget++;
-      } else {
-        // Start new row
-        currentWidth = element.width;
-        elementsBeforeTarget = 1;
-      }
-    }
-    
-    return 100 - currentWidth;
-  }, [section.elements]);
+    return 100; // For now, always return full space to allow drops
+  }, []);
 
-  // Organize elements into rows based on their width, maintaining their order
-  const getElementRows = useCallback((): PageElement[][] => {
-    const rows: PageElement[][] = [];
-    let currentRow: PageElement[] = [];
-    let currentRowWidth = 0;
-
-    section.elements.forEach(element => {
-      if (currentRowWidth + element.width <= 100) {
-        // Element fits in current row
-        currentRow.push(element);
-        currentRowWidth += element.width;
-      } else {
-        // Start new row
-        if (currentRow.length > 0) {
-          rows.push(currentRow);
-        }
-        currentRow = [element];
-        currentRowWidth = element.width;
-      }
-    });
-
-    if (currentRow.length > 0) {
-      rows.push(currentRow);
-    }
-
-    return rows;
-  }, [section.elements]);
-
-  const renderElementRows = () => {
-    const rows = getElementRows();
-    let elementIndex = 0;
-
-    return rows.map((row, rowIndex) => (
-      <div key={rowIndex} className="flex gap-2 mb-4">
-        {row.map((element) => {
-          const currentIndex = elementIndex++;
-          return (
-            <div key={element.id} style={{ width: `${element.width}%` }}>
-              <DraggableElement
-                element={element}
-                index={currentIndex}
-                sectionId={section.id}
-                onUpdate={(updates) => onUpdateElement(section.id, element.id, updates)}
-                onRemove={() => onRemoveElement(section.id, element.id)}
-                onMoveElement={handleMoveElement}
-                getAvailableSpaceAt={getAvailableSpaceAt}
-              />
-            </div>
-          );
-        })}
+  // Render elements in their stored order without automatic repositioning
+  const renderElements = () => {
+    return section.elements.map((element, index) => (
+      <div key={element.id} className="mb-4" style={{ width: `${element.width}%` }}>
+        <DraggableElement
+          element={element}
+          index={index}
+          sectionId={section.id}
+          onUpdate={(updates) => onUpdateElement(section.id, element.id, updates)}
+          onRemove={() => onRemoveElement(section.id, element.id)}
+          onMoveElement={handleMoveElement}
+          getAvailableSpaceAt={getAvailableSpaceAt}
+        />
       </div>
     ));
   };
@@ -184,8 +129,8 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
             <p>Drop elements here to add them to this section</p>
           </div>
         ) : (
-          <div>
-            {renderElementRows()}
+          <div className="space-y-4">
+            {renderElements()}
           </div>
         )}
       </div>
