@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { X, Edit3, Settings } from 'lucide-react';
+import { X, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Slider } from '@/components/ui/slider';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { PageElement } from '@/types/builder';
 
 interface ElementRendererProps {
@@ -14,14 +14,14 @@ interface ElementRendererProps {
 
 const ElementRenderer: React.FC<ElementRendererProps> = ({ element, onUpdate, onRemove }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
 
   const handleContentChange = (newContent: any) => {
     onUpdate({ content: newContent });
   };
 
-  const handleWidthChange = (newWidth: number[]) => {
-    onUpdate({ width: newWidth[0] });
+  const handleResize = (sizes: number[]) => {
+    // Convert the relative size back to percentage
+    onUpdate({ width: Math.round(sizes[0]) });
   };
 
   const renderElement = () => {
@@ -164,56 +164,41 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({ element, onUpdate, on
   };
 
   return (
-    <div className="group relative border border-border rounded-lg p-4 hover:border-primary/50 transition-colors">
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setShowSettings(!showSettings)}
-          className="h-8 w-8 p-0"
-        >
-          <Settings className="h-3 w-3" />
-        </Button>
-        {element.type === 'text' && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsEditing(!isEditing)}
-            className="h-8 w-8 p-0"
-          >
-            <Edit3 className="h-3 w-3" />
-          </Button>
-        )}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onRemove}
-          className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
-      
-      {showSettings && (
-        <div className="mb-4 p-3 bg-muted rounded-lg">
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Width: {element.width}%</label>
-              <Slider
-                value={[element.width]}
-                onValueChange={handleWidthChange}
-                min={25}
-                max={100}
-                step={5}
-                className="w-full"
-              />
-            </div>
+    <ResizablePanelGroup direction="horizontal" className="min-h-[60px]">
+      <ResizablePanel 
+        defaultSize={element.width} 
+        minSize={10}
+        maxSize={100}
+        onResize={handleResize}
+      >
+        <div className="group relative border border-border rounded-lg p-4 hover:border-primary/50 transition-colors h-full">
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+            {element.type === 'text' && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsEditing(!isEditing)}
+                className="h-8 w-8 p-0"
+              >
+                <Edit3 className="h-3 w-3" />
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onRemove}
+              className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <X className="h-3 w-3" />
+            </Button>
           </div>
+          
+          {renderElement()}
         </div>
-      )}
-      
-      {renderElement()}
-    </div>
+      </ResizablePanel>
+      <ResizableHandle withHandle />
+      <ResizablePanel defaultSize={100 - element.width} />
+    </ResizablePanelGroup>
   );
 };
 
