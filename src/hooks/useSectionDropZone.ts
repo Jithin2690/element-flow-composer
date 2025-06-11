@@ -18,7 +18,7 @@ export const useSectionDropZone = ({ sectionId, onAddElement }: UseSectionDropZo
       const newElement = {
         type: item.elementType,
         content: getDefaultContent(item.elementType),
-        width: item.elementType === 'divider' ? 100 : 50
+        width: 100 // Make all elements full width by default
       };
 
       if (item.elementType === 'image' || item.elementType === 'video') {

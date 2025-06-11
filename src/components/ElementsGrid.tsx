@@ -24,13 +24,13 @@ const ElementsGrid: React.FC<ElementsGridProps> = ({
   }, [onMoveElement]);
 
   const getAvailableSpaceAt = useCallback((targetIndex: number, excludeIndex?: number): number => {
-    return 100; // Always allow drops - let CSS handle overflow
+    return 100;
   }, []);
 
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="space-y-4">
       {elements.map((element, index) => (
-        <div key={element.id} style={{ width: `${Math.min(element.width, 100)}%`, minWidth: '200px' }}>
+        <div key={element.id} className="w-full">
           <DraggableElement
             element={element}
             index={index}
