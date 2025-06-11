@@ -1,24 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useDrop } from 'react-dnd';
 import { PageSection, PageElement, DragItem } from '@/types/builder';
-import ElementRenderer from './ElementRenderer';
+import DraggableElement from './DraggableElement';
 import MediaUploadDialog from './MediaUploadDialog';
+import { useSectionDragDrop } from '@/hooks/useSectionDragDrop';
 
 interface SectionDropZoneProps {
   section: PageSection;
   onAddElement: (sectionId: string, element: any) => void;
   onUpdateElement: (sectionId: string, elementId: string, updates: any) => void;
   onRemoveElement: (sectionId: string, elementId: string) => void;
+  onMoveElement: (sectionId: string, dragIndex: number, hoverIndex: number) => void;
 }
 
 const SectionDropZone: React.FC<SectionDropZoneProps> = ({
   section,
   onAddElement,
   onUpdateElement,
-  onRemoveElement
+  onRemoveElement,
+  onMoveElement
 }) => {
   const [showMediaDialog, setShowMediaDialog] = useState(false);
   const [pendingMediaElement, setPendingMediaElement] = useState<any>(null);
+
+  const { getElementRows, canElementFitInRow } = useSectionDragDrop({
+    sectionId: section.id,
+    elements: section.elements,
+    onMoveElement
+  });
 
   const [{ isOver }, drop] = useDrop({
     accept: 'element',
@@ -87,6 +96,55 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
     setShowMediaDialog(false);
   };
 
+  const handleMoveElement = useCallback((dragIndex: number, hoverIndex: number) => {
+    onMoveElement(section.id, dragIndex, hoverIndex);
+  }, [section.id, onMoveElement]);
+
+  const canFitInRow = useCallback((element: PageElement, targetIndex: number): boolean => {
+    const rows = getElementRows();
+    let targetRow = 0;
+    let elementsInTargetRow: PageElement[] = [];
+    let currentIndex = 0;
+
+    // Find which row the target index belongs to
+    for (let i = 0; i < rows.length; i++) {
+      if (currentIndex + rows[i].length > targetIndex) {
+        targetRow = i;
+        elementsInTargetRow = rows[i].filter((_, idx) => currentIndex + idx !== targetIndex);
+        break;
+      }
+      currentIndex += rows[i].length;
+    }
+
+    return canElementFitInRow(element, elementsInTargetRow);
+  }, [getElementRows, canElementFitInRow]);
+
+  const renderElementRows = () => {
+    const rows = getElementRows();
+    let elementIndex = 0;
+
+    return rows.map((row, rowIndex) => (
+      <div key={rowIndex} className="flex gap-2 mb-4">
+        {row.map((element) => {
+          const currentIndex = elementIndex++;
+          return (
+            <div key={element.id} style={{ width: `${element.width}%` }}>
+              <DraggableElement
+                element={element}
+                index={currentIndex}
+                sectionId={section.id}
+                onUpdate={(updates) => onUpdateElement(section.id, element.id, updates)}
+                onRemove={() => onRemoveElement(section.id, element.id)}
+                onMoveElement={handleMoveElement}
+                canFitInRow={canFitInRow}
+              />
+            </div>
+          );
+        })}
+      </div>
+    ));
+  };
+
   return (
     <>
       <div
@@ -100,15 +158,8 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
             <p>Drop elements here to add them to this section</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {section.elements.map((element) => (
-              <ElementRenderer
-                key={element.id}
-                element={element}
-                onUpdate={(updates) => onUpdateElement(section.id, element.id, updates)}
-                onRemove={() => onRemoveElement(section.id, element.id)}
-              />
-            ))}
+          <div>
+            {renderElementRows()}
           </div>
         )}
       </div>

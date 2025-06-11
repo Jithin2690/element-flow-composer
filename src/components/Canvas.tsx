@@ -12,6 +12,7 @@ interface CanvasProps {
   onAddElement: (sectionId: string, element: any) => void;
   onUpdateElement: (sectionId: string, elementId: string, updates: any) => void;
   onRemoveElement: (sectionId: string, elementId: string) => void;
+  onMoveElement: (sectionId: string, dragIndex: number, hoverIndex: number) => void;
 }
 
 const Canvas: React.FC<CanvasProps> = ({
@@ -19,7 +20,8 @@ const Canvas: React.FC<CanvasProps> = ({
   onAddSection,
   onAddElement,
   onUpdateElement,
-  onRemoveElement
+  onRemoveElement,
+  onMoveElement
 }) => {
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -47,6 +49,7 @@ const Canvas: React.FC<CanvasProps> = ({
                 onAddElement={onAddElement}
                 onUpdateElement={onUpdateElement}
                 onRemoveElement={onRemoveElement}
+                onMoveElement={onMoveElement}
               />
             ))}
             <div className="border border-dashed border-border rounded-lg p-6 text-center">

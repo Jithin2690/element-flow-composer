@@ -46,6 +46,23 @@ const PageBuilder = () => {
     ));
   };
 
+  const moveElement = (sectionId: string, dragIndex: number, hoverIndex: number) => {
+    setSections(prev => prev.map(section => {
+      if (section.id !== sectionId) return section;
+      
+      const elements = [...section.elements];
+      const draggedElement = elements[dragIndex];
+      
+      // Remove element from old position
+      elements.splice(dragIndex, 1);
+      
+      // Insert element at new position
+      elements.splice(hoverIndex, 0, draggedElement);
+      
+      return { ...section, elements };
+    }));
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex h-screen">
@@ -56,6 +73,7 @@ const PageBuilder = () => {
             onAddElement={addElementToSection}
             onUpdateElement={updateElement}
             onRemoveElement={removeElement}
+            onMoveElement={moveElement}
           />
         </div>
         <ElementSidebar />
