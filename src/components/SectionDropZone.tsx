@@ -26,7 +26,8 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
     drop: (item: DragItem) => {
       const newElement = {
         type: item.elementType,
-        content: getDefaultContent(item.elementType)
+        content: getDefaultContent(item.elementType),
+        width: 100 // Default to full width
       };
 
       if (item.elementType === 'image' || item.elementType === 'video') {
@@ -87,6 +88,32 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
     setShowMediaDialog(false);
   };
 
+  // Group elements by rows based on their width
+  const arrangeElementsInRows = () => {
+    const rows: PageElement[][] = [];
+    let currentRow: PageElement[] = [];
+    let currentRowWidth = 0;
+
+    section.elements.forEach((element) => {
+      if (currentRowWidth + element.width <= 100) {
+        currentRow.push(element);
+        currentRowWidth += element.width;
+      } else {
+        if (currentRow.length > 0) {
+          rows.push(currentRow);
+        }
+        currentRow = [element];
+        currentRowWidth = element.width;
+      }
+    });
+
+    if (currentRow.length > 0) {
+      rows.push(currentRow);
+    }
+
+    return rows;
+  };
+
   return (
     <>
       <div
@@ -101,13 +128,22 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {section.elements.map((element) => (
-              <ElementRenderer
-                key={element.id}
-                element={element}
-                onUpdate={(updates) => onUpdateElement(section.id, element.id, updates)}
-                onRemove={() => onRemoveElement(section.id, element.id)}
-              />
+            {arrangeElementsInRows().map((row, rowIndex) => (
+              <div key={rowIndex} className="flex gap-4">
+                {row.map((element) => (
+                  <div
+                    key={element.id}
+                    style={{ width: `${element.width}%` }}
+                    className="flex-shrink-0"
+                  >
+                    <ElementRenderer
+                      element={element}
+                      onUpdate={(updates) => onUpdateElement(section.id, element.id, updates)}
+                      onRemove={() => onRemoveElement(section.id, element.id)}
+                    />
+                  </div>
+                ))}
+              </div>
             ))}
           </div>
         )}

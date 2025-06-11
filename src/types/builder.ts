@@ -4,6 +4,7 @@ export interface PageElement {
   type: 'text' | 'image' | 'video' | 'table' | 'faq' | 'checklist' | 'divider';
   content: any;
   styles?: Record<string, any>;
+  width: number; // Width as percentage (1-100)
 }
 
 export interface PageSection {
