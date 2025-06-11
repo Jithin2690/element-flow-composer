@@ -51,22 +51,10 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
 
       const hoverMiddleY = (rect.bottom - rect.top) / 2;
       const hoverClientY = clientOffset.y - rect.top;
-      const hoverMiddleX = (rect.right - rect.left) / 2;
-      const hoverClientX = clientOffset.x - rect.left;
 
-      // Determine if we're hovering over the right side (for side-by-side placement)
-      const isHoveringRight = hoverClientX > hoverMiddleX;
-      const isHoveringBelow = hoverClientY > hoverMiddleY;
-
-      // For side-by-side placement, we need to check if there's space
-      if (isHoveringRight && !isHoveringBelow) {
-        // Don't trigger hover moves for side-by-side - handle in drop
-        return;
-      }
-
-      // For vertical repositioning
-      if (dragIndex < hoverIndex && !isHoveringBelow) return;
-      if (dragIndex > hoverIndex && isHoveringBelow) return;
+      // For vertical repositioning only
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
 
       console.log('Hover move from', dragIndex, 'to', hoverIndex);
       onMoveElement(dragIndex, hoverIndex);
@@ -85,19 +73,11 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
 
       console.log('Drop attempted at index:', index, 'hovering right:', isHoveringRight);
       
-      // If hovering on the right side, try to place side-by-side
-      if (isHoveringRight && item.sectionId === sectionId) {
-        // Check if there's enough space to place the element next to this one
-        const availableSpace = getAvailableSpaceAt(index + 1, item.elementIndex);
-        console.log('Available space for side-by-side placement:', availableSpace, 'needed:', item.element.width);
-        
-        if (availableSpace >= item.element.width) {
-          // Move to the position right after this element
-          onMoveElement(item.elementIndex, index + 1);
-          console.log('Placed element side-by-side at position', index + 1);
-        } else {
-          console.log('Not enough space for side-by-side placement');
-        }
+      // If hovering on the right side, place element next to this one
+      if (isHoveringRight && item.sectionId === sectionId && item.elementIndex !== index) {
+        // Always allow the drop - let the layout system handle overflow
+        onMoveElement(item.elementIndex, index + 1);
+        console.log('Placed element side-by-side at position', index + 1);
       }
       
       return { dropped: true };
@@ -116,7 +96,7 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
   return (
     <div
       ref={ref}
-      className={`transition-all duration-200 ${isDragging ? 'opacity-50 scale-95' : 'opacity-100'} ${
+      className={`transition-all duration-200 ${isDragging ? 'opacity-30' : 'opacity-100'} ${
         isOver && canDrop ? 'ring-2 ring-green-500 shadow-lg' : ''
       } ${isOver && !canDrop ? 'ring-2 ring-red-500' : ''}`}
     >

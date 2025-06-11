@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDrop } from 'react-dnd';
 import { PageSection, PageElement, DragItem } from '@/types/builder';
@@ -29,7 +28,7 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
       const newElement = {
         type: item.elementType,
         content: getDefaultContent(item.elementType),
-        width: 100 // Default to full width
+        width: item.elementType === 'divider' ? 100 : 50 // Default to 50% width for better side-by-side layout
       };
 
       if (item.elementType === 'image' || item.elementType === 'video') {
@@ -95,109 +94,30 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
     onMoveElement(section.id, dragIndex, hoverIndex);
   }, [section.id, onMoveElement]);
 
-  // Calculate available space at a given position considering row layout
+  // Simplified space calculation - always return available space
   const getAvailableSpaceAt = useCallback((targetIndex: number, excludeIndex?: number): number => {
-    // Filter out the excluded element if specified
-    const filteredElements = excludeIndex !== undefined 
-      ? section.elements.filter((_, idx) => idx !== excludeIndex)
-      : section.elements;
+    return 100; // Always allow drops - let CSS handle overflow
+  }, []);
 
-    // If targetIndex is at the end, calculate space in the last row
-    if (targetIndex >= filteredElements.length) {
-      // Find the last row's total width
-      let lastRowWidth = 0;
-      let currentRowWidth = 0;
-      
-      for (const element of filteredElements) {
-        if (currentRowWidth + element.width <= 100) {
-          currentRowWidth += element.width;
-        } else {
-          lastRowWidth = currentRowWidth;
-          currentRowWidth = element.width;
-        }
-      }
-      
-      return 100 - currentRowWidth;
-    }
-
-    // Calculate which row the target position is in and available space
-    let currentRowWidth = 0;
-    let elementsInCurrentRow: PageElement[] = [];
-    
-    for (let i = 0; i <= targetIndex && i < filteredElements.length; i++) {
-      const element = filteredElements[i];
-      
-      if (currentRowWidth + element.width <= 100) {
-        currentRowWidth += element.width;
-        elementsInCurrentRow.push(element);
-      } else {
-        // This element starts a new row
-        if (i === targetIndex) {
-          // Target is at the start of a new row, so previous row space doesn't matter
-          return 100;
-        }
-        // Reset for new row
-        currentRowWidth = element.width;
-        elementsInCurrentRow = [element];
-      }
-    }
-    
-    return 100 - currentRowWidth;
-  }, [section.elements]);
-
-  // Group elements into rows for rendering
-  const getElementRows = () => {
-    const rows: { elements: PageElement[]; indices: number[] }[] = [];
-    let currentRow: PageElement[] = [];
-    let currentRowIndices: number[] = [];
-    let currentRowWidth = 0;
-
-    section.elements.forEach((element, index) => {
-      if (currentRowWidth + element.width <= 100) {
-        currentRow.push(element);
-        currentRowIndices.push(index);
-        currentRowWidth += element.width;
-      } else {
-        if (currentRow.length > 0) {
-          rows.push({ elements: currentRow, indices: currentRowIndices });
-        }
-        currentRow = [element];
-        currentRowIndices = [index];
-        currentRowWidth = element.width;
-      }
-    });
-
-    if (currentRow.length > 0) {
-      rows.push({ elements: currentRow, indices: currentRowIndices });
-    }
-
-    return rows;
-  };
-
-  // Render elements in rows
+  // Simplified element rendering without complex row calculations
   const renderElements = () => {
-    const rows = getElementRows();
-    
-    return rows.map((row, rowIndex) => (
-      <div key={rowIndex} className="flex gap-4 mb-4">
-        {row.elements.map((element, elementIndex) => {
-          const actualIndex = row.indices[elementIndex];
-          return (
-            <div key={element.id} style={{ width: `${element.width}%` }}>
-              <DraggableElement
-                element={element}
-                index={actualIndex}
-                sectionId={section.id}
-                onUpdate={(updates) => onUpdateElement(section.id, element.id, updates)}
-                onRemove={() => onRemoveElement(section.id, element.id)}
-                onMoveElement={handleMoveElement}
-                getAvailableSpaceAt={getAvailableSpaceAt}
-              />
-            </div>
-          );
-        })}
+    return (
+      <div className="flex flex-wrap gap-4">
+        {section.elements.map((element, index) => (
+          <div key={element.id} style={{ width: `${Math.min(element.width, 100)}%`, minWidth: '200px' }}>
+            <DraggableElement
+              element={element}
+              index={index}
+              sectionId={section.id}
+              onUpdate={(updates) => onUpdateElement(section.id, element.id, updates)}
+              onRemove={() => onRemoveElement(section.id, element.id)}
+              onMoveElement={handleMoveElement}
+              getAvailableSpaceAt={getAvailableSpaceAt}
+            />
+          </div>
+        ))}
       </div>
-    ));
+    );
   };
 
   return (
@@ -213,9 +133,7 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
             <p>Drop elements here to add them to this section</p>
           </div>
         ) : (
-          <div>
-            {renderElements()}
-          </div>
+          renderElements()
         )}
       </div>
 
