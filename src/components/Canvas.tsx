@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
-import { Plus, Globe } from 'lucide-react';
+import { Plus, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageSection, DragItem } from '@/types/builder';
 import SectionDropZone from './SectionDropZone';
-import PublishDialog from './PublishDialog';
+import PreviewModal from './PreviewModal';
 
 interface CanvasProps {
   sections: PageSection[];
@@ -24,7 +24,7 @@ const Canvas: React.FC<CanvasProps> = ({
   onRemoveElement,
   onMoveElement
 }) => {
-  const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   return (
     <>
@@ -34,9 +34,9 @@ const Canvas: React.FC<CanvasProps> = ({
             <h1 className="text-3xl font-bold text-foreground mb-2">Page Builder</h1>
             <p className="text-muted-foreground">Drag elements from the sidebar to build your page</p>
           </div>
-          <Button onClick={() => setShowPublishDialog(true)} className="bg-green-600 hover:bg-green-700">
-            <Globe className="h-4 w-4 mr-2" />
-            Publish
+          <Button onClick={() => setShowPreviewModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Eye className="h-4 w-4 mr-2" />
+            Preview
           </Button>
         </div>
 
@@ -73,9 +73,9 @@ const Canvas: React.FC<CanvasProps> = ({
         </div>
       </div>
 
-      <PublishDialog
-        isOpen={showPublishDialog}
-        onClose={() => setShowPublishDialog(false)}
+      <PreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
         pageData={sections}
       />
     </>
