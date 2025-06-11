@@ -35,7 +35,7 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
 
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'section-element',
-    hover: (item: { elementIndex: number; sectionId: string; element: PageElement }) => {
+    hover: (item: { elementIndex: number; sectionId: string; element: PageElement }, monitor) => {
       if (!ref.current) return;
       
       const dragIndex = item.elementIndex;
@@ -44,24 +44,66 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
       // Don't replace items with themselves or from different sections
       if (dragIndex === hoverIndex || item.sectionId !== sectionId) return;
 
-      // Only move if it's a valid drop position
       const rect = ref.current.getBoundingClientRect();
-      const hoverMiddleY = (rect.bottom - rect.top) / 2;
-      const clientOffset = { x: 0, y: 0 }; // We'll handle this more simply
+      const clientOffset = monitor.getClientOffset();
       
-      // For now, just allow the move - validation will happen on drop
+      if (!clientOffset) return;
+
+      const hoverMiddleY = (rect.bottom - rect.top) / 2;
+      const hoverClientY = clientOffset.y - rect.top;
+      const hoverMiddleX = (rect.right - rect.left) / 2;
+      const hoverClientX = clientOffset.x - rect.left;
+
+      // Determine if we're hovering over the right side (for side-by-side placement)
+      const isHoveringRight = hoverClientX > hoverMiddleX;
+      const isHoveringBelow = hoverClientY > hoverMiddleY;
+
+      // For side-by-side placement, we need to check if there's space
+      if (isHoveringRight && !isHoveringBelow) {
+        // Don't trigger hover moves for side-by-side - handle in drop
+        return;
+      }
+
+      // For vertical repositioning
+      if (dragIndex < hoverIndex && !isHoveringBelow) return;
+      if (dragIndex > hoverIndex && isHoveringBelow) return;
+
+      console.log('Hover move from', dragIndex, 'to', hoverIndex);
       onMoveElement(dragIndex, hoverIndex);
       item.elementIndex = hoverIndex;
     },
-    drop: (item: { elementIndex: number; sectionId: string; element: PageElement }) => {
-      // This is where the final drop validation happens
-      console.log('Drop attempted at index:', index);
+    drop: (item: { elementIndex: number; sectionId: string; element: PageElement }, monitor) => {
+      if (!ref.current) return;
+      
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+
+      const rect = ref.current.getBoundingClientRect();
+      const hoverMiddleX = (rect.right - rect.left) / 2;
+      const hoverClientX = clientOffset.x - rect.left;
+      const isHoveringRight = hoverClientX > hoverMiddleX;
+
+      console.log('Drop attempted at index:', index, 'hovering right:', isHoveringRight);
+      
+      // If hovering on the right side, try to place side-by-side
+      if (isHoveringRight && item.sectionId === sectionId) {
+        // Check if there's enough space to place the element next to this one
+        const availableSpace = getAvailableSpaceAt(index + 1, item.elementIndex);
+        console.log('Available space for side-by-side placement:', availableSpace, 'needed:', item.element.width);
+        
+        if (availableSpace >= item.element.width) {
+          // Move to the position right after this element
+          onMoveElement(item.elementIndex, index + 1);
+          console.log('Placed element side-by-side at position', index + 1);
+        } else {
+          console.log('Not enough space for side-by-side placement');
+        }
+      }
+      
       return { dropped: true };
     },
     canDrop: (item: { elementIndex: number; sectionId: string; element: PageElement }) => {
-      if (item.sectionId !== sectionId) return false;
-      // Always allow drops for now - we'll handle space checking differently
-      return true;
+      return item.sectionId === sectionId;
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
