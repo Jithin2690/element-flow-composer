@@ -3,7 +3,6 @@ import { useDrop } from 'react-dnd';
 import { PageSection, PageElement, DragItem } from '@/types/builder';
 import DraggableElement from './DraggableElement';
 import MediaUploadDialog from './MediaUploadDialog';
-import { useSectionDragDrop } from '@/hooks/useSectionDragDrop';
 
 interface SectionDropZoneProps {
   section: PageSection;
@@ -22,12 +21,6 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
 }) => {
   const [showMediaDialog, setShowMediaDialog] = useState(false);
   const [pendingMediaElement, setPendingMediaElement] = useState<any>(null);
-
-  const { getElementRows, canElementFitInRow } = useSectionDragDrop({
-    sectionId: section.id,
-    elements: section.elements,
-    onMoveElement
-  });
 
   const [{ isOver }, drop] = useDrop({
     accept: 'element',
@@ -100,24 +93,57 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
     onMoveElement(section.id, dragIndex, hoverIndex);
   }, [section.id, onMoveElement]);
 
-  const canFitInRow = useCallback((element: PageElement, targetIndex: number): boolean => {
-    const rows = getElementRows();
-    let targetRow = 0;
-    let elementsInTargetRow: PageElement[] = [];
-    let currentIndex = 0;
-
-    // Find which row the target index belongs to
-    for (let i = 0; i < rows.length; i++) {
-      if (currentIndex + rows[i].length > targetIndex) {
-        targetRow = i;
-        elementsInTargetRow = rows[i].filter((_, idx) => currentIndex + idx !== targetIndex);
-        break;
+  // Calculate available space at a specific position
+  const getAvailableSpaceAt = useCallback((targetIndex: number, excludeIndex?: number): number => {
+    // Create a copy of elements without the excluded element if specified
+    const elementsToCheck = section.elements.filter((_, idx) => idx !== excludeIndex);
+    
+    // Find elements that would be on the same row as the target position
+    let currentWidth = 0;
+    let elementsBeforeTarget = 0;
+    
+    for (let i = 0; i < elementsToCheck.length && elementsBeforeTarget < targetIndex; i++) {
+      const element = elementsToCheck[i];
+      if (currentWidth + element.width <= 100) {
+        currentWidth += element.width;
+        elementsBeforeTarget++;
+      } else {
+        // Start new row
+        currentWidth = element.width;
+        elementsBeforeTarget = 1;
       }
-      currentIndex += rows[i].length;
+    }
+    
+    return 100 - currentWidth;
+  }, [section.elements]);
+
+  // Organize elements into rows based on their width, maintaining their order
+  const getElementRows = useCallback((): PageElement[][] => {
+    const rows: PageElement[][] = [];
+    let currentRow: PageElement[] = [];
+    let currentRowWidth = 0;
+
+    section.elements.forEach(element => {
+      if (currentRowWidth + element.width <= 100) {
+        // Element fits in current row
+        currentRow.push(element);
+        currentRowWidth += element.width;
+      } else {
+        // Start new row
+        if (currentRow.length > 0) {
+          rows.push(currentRow);
+        }
+        currentRow = [element];
+        currentRowWidth = element.width;
+      }
+    });
+
+    if (currentRow.length > 0) {
+      rows.push(currentRow);
     }
 
-    return canElementFitInRow(element, elementsInTargetRow);
-  }, [getElementRows, canElementFitInRow]);
+    return rows;
+  }, [section.elements]);
 
   const renderElementRows = () => {
     const rows = getElementRows();
@@ -136,7 +162,7 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
                 onUpdate={(updates) => onUpdateElement(section.id, element.id, updates)}
                 onRemove={() => onRemoveElement(section.id, element.id)}
                 onMoveElement={handleMoveElement}
-                canFitInRow={canFitInRow}
+                getAvailableSpaceAt={getAvailableSpaceAt}
               />
             </div>
           );

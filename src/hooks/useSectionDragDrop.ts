@@ -11,13 +11,16 @@ interface UseSectionDragDropProps {
 export const useSectionDragDrop = ({ sectionId, elements, onMoveElement }: UseSectionDragDropProps) => {
   const [{ isOver }, drop] = useDrop({
     accept: 'section-element',
-    drop: (item: { elementIndex: number; sectionId: string }, monitor) => {
+    drop: (item: { elementIndex: number; sectionId: string; element: PageElement }, monitor) => {
       if (!monitor.didDrop()) {
         const dragIndex = item.elementIndex;
         const hoverIndex = elements.length;
         
         if (dragIndex !== hoverIndex && item.sectionId === sectionId) {
-          onMoveElement(sectionId, dragIndex, hoverIndex);
+          // Only allow drop if element can fit in a new row
+          if (item.element.width <= 100) {
+            onMoveElement(sectionId, dragIndex, hoverIndex);
+          }
         }
       }
     },
@@ -60,11 +63,35 @@ export const useSectionDragDrop = ({ sectionId, elements, onMoveElement }: UseSe
     return rows;
   };
 
+  const getAvailableSpaceAt = (targetIndex: number, excludeIndex?: number): number => {
+    // Filter out the excluded element if specified
+    const filteredElements = elements.filter((_, idx) => idx !== excludeIndex);
+    
+    // Calculate which row the target index would be in and available space
+    let currentRowWidth = 0;
+    let elementsProcessed = 0;
+    
+    for (let i = 0; i < filteredElements.length && elementsProcessed < targetIndex; i++) {
+      const element = filteredElements[i];
+      if (currentRowWidth + element.width <= 100) {
+        currentRowWidth += element.width;
+        elementsProcessed++;
+      } else {
+        // Start new row
+        currentRowWidth = element.width;
+        elementsProcessed = 1;
+      }
+    }
+    
+    return 100 - currentRowWidth;
+  };
+
   return {
     drop,
     isOver,
     calculateAvailableSpace,
     canElementFitInRow,
-    getElementRows
+    getElementRows,
+    getAvailableSpaceAt
   };
 };
