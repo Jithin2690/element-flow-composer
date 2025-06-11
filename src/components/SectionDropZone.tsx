@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
-import { PageSection, DragItem } from '@/types/builder';
+import { PageSection, PageElement, DragItem } from '@/types/builder';
 import ElementRenderer from './ElementRenderer';
 import MediaUploadDialog from './MediaUploadDialog';
 
