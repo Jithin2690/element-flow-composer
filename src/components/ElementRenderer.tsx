@@ -8,20 +8,43 @@ import ElementContent from './ElementContent';
 
 interface ElementRendererProps {
   element: PageElement;
-  onUpdate: (updates: any) => void;
-  onRemove: () => void;
+  onUpdate?: (updates: any) => void;
+  onRemove?: () => void;
+  isPreview?: boolean;
 }
 
-const ElementRenderer: React.FC<ElementRendererProps> = ({ element, onUpdate, onRemove }) => {
+const ElementRenderer: React.FC<ElementRendererProps> = ({ 
+  element, 
+  onUpdate, 
+  onRemove, 
+  isPreview = false 
+}) => {
   const [isEditing, setIsEditing] = useState(false);
 
   const handleContentChange = (newContent: any) => {
-    onUpdate({ content: newContent });
+    if (onUpdate) {
+      onUpdate({ content: newContent });
+    }
   };
 
   const handleResize = (size: number) => {
-    onUpdate({ width: Math.round(size) });
+    if (onUpdate) {
+      onUpdate({ width: Math.round(size) });
+    }
   };
+
+  if (isPreview) {
+    return (
+      <div className="w-full">
+        <ElementContent
+          element={element}
+          isEditing={false}
+          onContentChange={() => {}}
+          onEditingChange={() => {}}
+        />
+      </div>
+    );
+  }
 
   return (
     <ResizablePanelGroup direction="horizontal" className="min-h-[60px]">
